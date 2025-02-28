@@ -31,10 +31,10 @@ def create_token(id):
 
 def regnerate_token_view(request):
    try:
-      token = request.COOKIE.get('refresh_token')
+      token = request.COOKIES.get('refresh_token')
       decoded = jwt.decode(token, SECRET_KEY, algorithms='HS256')
       access_payload = {
-           'user_id' : decoded['id'],
+           'user_id' : decoded['user_id'],
            'exp': datetime.utcnow() + timedelta(minutes=15)
        }
       response = JsonResponse({'status':True,'message':'token regenerated'})

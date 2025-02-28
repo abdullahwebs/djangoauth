@@ -29,21 +29,32 @@ def create_token(id):
 
 # Regnerate access token on expiry
 
-def regnerate_token_view(request):
-   try:
-      token = request.COOKIES.get('refresh_token')
-      decoded = jwt.decode(token, SECRET_KEY, algorithms='HS256')
-      access_payload = {
-           'user_id' : decoded['user_id'],
-           'exp': datetime.utcnow() + timedelta(minutes=15)
-       }
-      response = JsonResponse({'status':True,'message':'token regenerated'})
-      
-      response.set_cookie(key='access_token', value=access_payload, httponly=True, secure=False)
+def regenerate_token_view(request):
+    try:
+        token = request.COOKIES.get('refresh_token')  # Fix COOKIE -> COOKIES
+        
+        if not token:
+            return JsonResponse({'status': False, 'message': 'No refresh token found'}, status=401)
 
-      return response
-   except Exception as e:
-       return JsonResponse({'status':False,'message':str(e)}) 
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+        access_payload = {
+            'user_id': decoded['user_id'],  # Fix key name from 'id' to 'user_id'
+            'exp': datetime.utcnow() + timedelta(minutes=15)
+        }
+
+        new_access_token = jwt.encode(access_payload, SECRET_KEY, algorithm='HS256')
+
+        response = JsonResponse({'status': True, 'message': 'Token regenerated'})
+        response.set_cookie(key='access_token', value=new_access_token, httponly=True, secure=False)
+
+        return response
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'status': False, 'message': 'Refresh token expired'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'status': False, 'message': 'Invalid refresh token'}, status=401)
+    except Exception as e:
+        return JsonResponse({'status': False, 'message': str(e)}, status=500)
 
 
 # register view and token generation
